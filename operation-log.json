@@ -1,0 +1,122 @@
+'use strict';
+angular.module('com.cysvc.app')
+    .factory('operationLogService',
+        ["operationLogSao", "$q", "logDataFormater",
+            function (operationLogSao, $q, logDataFormater) {
+
+                function fetchLogsFromServer(from, limit, queryCondition) {
+            
+                    return operationLogSao.getLogs({ from: from, limit: limit }, queryCondition).$promise;
+                }
+
+                function getOperationType() {
+                    return  operationLogSao.getOperationState().$promise;
+                }
+
+                function getLogDataByName(name){
+                    return operationLogSao.getLogDataByName(name).$promise;
+                }
+
+                function clearAllLogData() {
+                    operationLogSao.deleteAll();
+                }
+
+                function getClientPageData(from, limit, queryCondition) {
+                   
+                    return loopFetchFromServerUntil(from, limit, limit, queryCondition, []);
+
+                }
+
+                function getAllLogsOf(queryCondition) {
+                    
+                    return loopFetchFromServerUntil(0, null,  null, queryCondition, []);
+                }
+
+                function loopFetchFromServerUntil(start, wantCount, wantTotalCount, queryCondition, fetchedItems) {
+                    var defered = $q.defer();
+
+                    fetchLogsFromServer(start, wantCount, queryCondition)
+                        .then(function (oneServerPage) {
+
+
+                            fetchedItems = fetchedItems.concat(oneServerPage.result);
+
+                            var hasMore = oneServerPage.paging.hasmore;
+
+                            if (!hasMore || wantTotalCount && (fetchedItems.length >= wantTotalCount)) {
+
+                                
+                                defered.resolve({
+                                    items: fetchedItems,
+                                    total: oneServerPage.paging.total,
+                                    nextindex: oneServerPage.paging.nextindex
+                                });
+                            } else {
+                               
+                                var loopFetched = loopFetchFromServerUntil(
+                                    oneServerPage.paging.nextindex,
+                                    wantTotalCount - fetchedItems.length,
+                                    wantTotalCount,
+                                    queryCondition,
+                                    fetchedItems);
+
+                                    loopFetched.then(function (loopFetchedLogs) {
+                                 
+                                    defered.resolve({
+                                        items: loopFetchedLogs.items,
+                                        total: loopFetchedLogs.total,
+                                        nextindex: loopFetchedLogs.nextindex
+                                    });
+
+                                });
+
+                            }
+                            
+                        });
+                        
+                    return defered.promise;
+                }
+
+                function getLogDataPromiseObj(from, limit, queryCondition) {
+
+                    let defered = $q.defer();
+
+                    getClientPageData(from, limit, queryCondition).then(function (logData) {
+
+                        let formattedDatas = [];
+
+                        angular.forEach(logData.items, function (logData) {
+
+                            if (logData) {
+                                var formatedLogItem = logDataFormater.format(logData);
+
+                                if (formatedLogItem)
+                                    formattedDatas.push(formatedLogItem);
+                            }
+                        });
+
+                        let currentPageData = {
+                            currentPageDataArray: formattedDatas,
+                            total: logData.total,
+                            // nextindex: logData.nextindex,
+                            startIndex:from
+                        }
+
+                        defered.resolve(currentPageData);
+
+                    }, function (error) {
+                        defered.reject(error);
+                    });
+
+                    return defered.promise;
+                }
+
+                return {
+                    fetchLogsFromServer: fetchLogsFromServer,
+                    getLogDataByName: getLogDataByName,
+                    clearAllLogData: clearAllLogData,
+                    getLogDataPromiseObj: getLogDataPromiseObj,
+                    getOperationType:getOperationType
+                };
+
+            }]);

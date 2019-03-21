@@ -1,0 +1,115 @@
+self.onmessage = function (event) {
+
+    var domains;
+    try{
+        var domains = JSON.parse( event.data );
+    }catch (e){
+        console.log( e + " " + "data is " + event.data );
+    }
+
+    if( domains ){
+
+       // console.log( event.data );
+        for (var i = 0; i < domains.length; i++) {
+
+            fetchDomain( domains[i] );
+        }
+    }
+}
+
+function  fetchDomain( domain ) {
+
+    if( !domain || domain.name == undefined || domain.url==undefined ){
+        console.log( " unexception happen ");
+
+        return;
+    }
+    getAllPages(domain.url, function (data) {
+        self.postMessage(
+            {
+                name: domain.name,
+                data: data
+            });
+    });
+}
+
+function get(url, callback) {
+
+    var xhr;
+
+    if (typeof XMLHttpRequest !== 'undefined') {
+        xhr = new XMLHttpRequest();
+    }
+    else {
+        var versions = ["MSXML2.XmlHttp.5.0", "MSXML2.XmlHttp.4.0", "MSXML2.XmlHttp.3.0",
+            "MSXML2.XmlHttp.2.0", "Microsoft.XmlHttp"]
+
+        for (var i = 0, len = versions.length; i < len; i++) {
+            try {
+                xhr = new ActiveXObject(versions[i]);
+                break;
+            }
+            catch (e) {
+            }
+        }
+    }
+
+    if (!xhr) {
+        return;
+    }
+
+
+    function ensureReadiness() {
+        if (xhr.readyState < 4) {
+            return;
+        }
+
+        if (xhr.status !== 200) {
+            return;
+        }
+
+        // all is well
+        if (xhr.readyState === 4) {
+
+            callback(JSON.parse(xhr.responseText));
+        }
+    }
+
+    xhr.onreadystatechange = ensureReadiness;
+
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader("Accept", "application/json");
+    //xhr.setRequestHeader("Content-Type", "l/json;charset=UTF-8");
+    xhr.send('');
+}
+
+function getAllPages(url, callback) {
+
+    var result = [];
+
+    function getNextPage(from, limit) {
+
+        var pageUrl = url + "?from=" + from + "&limit=" + limit;
+
+        get(pageUrl, function (pageResult) {
+            if (pageResult == null){
+                callback(null);
+            }
+
+            result = result.concat(pageResult.result);
+
+            if (pageResult.paging.hasmore) {
+
+                getNextPage(pageResult.paging.nextindex, 50);
+
+            } else {
+
+                callback(result);
+            }
+        });
+    }
+
+    getNextPage(0, 50);
+}
+
+

@@ -1,0 +1,252 @@
+angular.module('com.cysvc.app')
+    .factory("cachesFetchWorker",
+        ["$interval", "projectCache","inodesCache", "onodesCache", "wallsCache", "scenesCache", "sceneloopsCache", "windowsCache",
+            "signalsCache", "currentAlarmsCache", "nodeOnlinesCache", "ipcsCache","ipcLoopCache","avSyncsCache","audioIntercomsCache",
+            "audioTalkgroupsCache","audioLoopBacksCache","socket","compositionalSignalsCache","usersCache","wallsPanelsCache",
+            "envNodesCache","envControlPortsCache","envDevicesCache","groupsCache",
+            function ($interval, projectCache, inodesCache, onodesCache, wallsCache, scenesCache, sceneloopsCache, windowsCache,
+                      signalsCache, currentAlarmsCache, nodeOnlinesCache, ipcsCache, ipcLoopCache, avSyncsCache, audioIntercomsCache,
+                      audioTalkgroupsCache, audioLoopBacksCache, socket, compositionalSignalsCache,usersCache, wallsPanelsCache,
+                      envNodesCache, envControlPortsCache, envDevicesCache, groupsCache) {
+
+                var modules = [
+                    {
+                        name: 'inodes',
+                        url: "/api/v1/projects/current/nodes/inodes",
+                        cb: function (pages) {
+                            inodesCache.initInodes(pages);
+                        }
+                    },
+                    {
+                        name: 'osds',
+                        url: "/api/v1/projects/current/osd",
+                        cb: function (pages) {
+                            inodesCache.initOsds(pages);
+                        }
+                    },
+                    {
+                        name: 'onodes',
+                        url: "/api/v1/projects/current/nodes/onodes",
+                        cb: function (pages) {
+                            onodesCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'walls',
+                        url: '/api/v1/projects/current/walls',
+                        cb: function (pages) {
+                            wallsCache.init(pages);
+                        }
+                    },{
+                        name: 'mirrorwalls',
+                        url: '/api/v1/projects/current/mirrorwalls',
+                        cb: function (pages) {
+                            wallsCache.initMirror(pages);
+                        }
+                    },
+                    {
+                        name: 'scenes',
+                        url: '/api/v1/projects/current/walls/scenes',
+                        cb: function (pages) {
+                            scenesCache.init(pages)
+                        }
+                    },
+                    {
+                        name: 'scenesloops',
+                        url: '/api/v1/projects/current/walls/scenesloops',
+                        cb: function (pages) {
+                            sceneloopsCache.init(pages)
+                        }
+                    },
+                    {
+                        name: "windows",
+                        url: '/api/v1/projects/current/walls/windows',
+                        cb: function (pages) {
+                            windowsCache.init(pages)
+                        }
+                    },
+                    {
+                        name: "signals",
+                        url: '/api/v1/projects/current/signals',
+                        cb: function (pages) {
+                            signalsCache.init(pages)
+                        }
+                    },
+                    {
+                        name: "currentAlarms",
+                        url: '/api/v1/projects/current/currentalarms',
+                        cb: function (pages) {
+                            currentAlarmsCache.init(pages)
+                        }
+                    },
+                    {
+                        name: 'onlineNodes',
+                        url: '/api/v1/projects/current/nodes/onlines',
+                        cb: function (pages) {
+                            nodeOnlinesCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'ipcs',
+                        url: '/api/v1/projects/current/Ipcs',
+                        cb: function (pages) {
+                            ipcsCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'ipcsloops',
+                        url: '/api/v1/projects/current/ipcnodes/loops',
+                        cb: function (pages) {
+                            ipcLoopCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'avsyncs',
+                        url: '/api/v1/projects/current/audiovideo',
+                        cb: function (pages) {
+                            avSyncsCache.initAvsyncsCache(pages);
+                        }
+                    },
+                    {
+                        name: 'avsyncOuts',
+                        url: '/api/v1/projects/current/audiovideo/outs',
+                        cb: function (pages) {
+                            avSyncsCache.initWallAvsyncOutsCache(pages);
+                        }
+                    },
+                    {
+                        name: 'audioIntercoms',
+                        url: '/api/v1/projects/current/audiotalkintercom',
+                        cb: function (pages) {
+                            audioIntercomsCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'audioTalkGroups',
+                        url: '/api/v1/projects/current/audiotalkgroup',
+                        cb: function (pages) {
+                            audioTalkgroupsCache.init(pages);
+                        }
+                    },
+
+                    {
+                        name: 'audioLoopBacks',
+                        url: '/api/v1/projects/current/audioloopbacks',
+                        cb: function (pages) {
+                            audioLoopBacksCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'compositionalSignals',
+                        url: '/api/v1/projects/current/compositionalsignals',
+                        cb: function (pages) {
+                            compositionalSignalsCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'users',
+                        url: '/api/v1/users',
+                        cb: function (pages) {
+                            usersCache.init(pages);
+                        }
+                    },
+                    {
+                        name: 'wallspanels',
+                        url: '/api/v1/projects/current/wallspanels/ops/all',
+                        cb: function (pages) {
+                            wallsPanelsCache.initPanel(pages);
+                        }
+                    },
+                    {
+                        name: 'wallspanelspreplans',
+                        url: '/api/v1/projects/current/wallspanels/preplans',
+                        cb: function (pages) {
+                            wallsPanelsCache.initPreplan(pages);
+                        }
+                    },
+                    {
+                        name: 'envnodes',
+                        url: '/api/v1/projects/current/nodes/enodes',
+                        cb: function (pages) {
+                            envNodesCache.initEnvNodes(pages);
+                        }
+                    },
+                    {
+                        name: 'envports',
+                        url: '/api/v1/projects/current/envir/ports',
+                        cb: function (pages) {
+                            envControlPortsCache.initEnvControlPortsCache(pages);
+                        }
+                    },
+                    {
+                        name: 'envdevices',
+                        url: '/api/v1/projects/current/envir/devices',
+                        cb: function (pages) {
+                            envDevicesCache.initEnvDevices(pages);
+                        }
+                    },
+                    {
+                        name: 'groups',
+                        url: '/api/v1/projects/current/groups',
+                        cb: function (pages) {
+                            groupsCache.init(pages);
+                        }
+                    }
+                ];
+                
+                var Worker = require("worker-loader!./cache-fetch.worker.js");
+
+                var worker = new Worker();
+
+                // var worker = new Worker("/apps/comm/services/cache/cache-fetch.worker.js");
+
+                worker.onmessage = function (event) {
+
+                    var moduleData = event.data;
+
+                    _.find(modules, function (module) {
+                        return module.name == moduleData.name;
+                    }).cb(moduleData.data);
+
+                }
+
+                function fetchOnceOnWorker() {
+                    //console.log( "fetchonceon:" + JSON.stringify(modules));
+                    worker.postMessage(JSON.stringify(modules));
+
+                    projectCache.syncWithServer();
+                }
+
+                var interval;
+
+                function startTimer(intervalMs) {
+
+                    if (interval) $interval.cancel(interval);
+
+                    interval = $interval(function () {
+
+                        fetchOnceOnWorker();
+
+                    }, intervalMs);
+                }
+
+
+                socket.domainOn("reconnect", function () {
+                    fetchOnceOnWorker();
+                });
+
+                socket.domainOn("disconnect", function () {
+                    nodeOnlinesCache.init([]);
+                });
+
+                return {
+
+                    autoFetchOnceWhenMs: function (intervalMs) {
+                        startTimer(intervalMs);
+                    },
+
+                    fetchOnce: function () {
+                        fetchOnceOnWorker();
+                    }
+                }
+            }]);

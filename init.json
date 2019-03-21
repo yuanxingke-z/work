@@ -1,0 +1,47 @@
+'use strict';
+
+angular.module('com.cysvc.app')
+    .run(function(editableOptions) {
+        
+        editableOptions.theme='bs3';
+        
+    })
+    .run([ "cachesInit",
+        function (cachesInit ) {
+
+            cachesInit.lazyLoadModules();
+    }])
+    .run(["cachesFetchWorker", function (cachesFetchWorker) {
+
+        cachesFetchWorker.autoFetchOnceWhenMs(30*60 * 1000);
+    }])
+
+    .run(["$rootScope", "authService",function ($rootScope, authService) {
+
+        $rootScope.$on("$stateChangeStart", function (event, next) {
+
+            authService.isUserCheck().then(function (status) {
+                console.log("m-isUserCheck: "+ status);
+                console.log("m-isUserAuthorized: "+ authService.isAuthorized());
+
+                if(status){
+                    
+                    if(!authService.isAuthorized()){
+                    
+                        window.location.href='/apps/o/index.html#/login';
+                    }else{
+                    
+                        authService.isAdminRoleOnLogin().then(function (isLogined) {
+
+                            if(!isLogined){
+
+                                window.location.href='/apps/o/index.html#/login';
+                            }
+                        });
+                    }
+                }
+            });
+
+        });
+    }])
+;
